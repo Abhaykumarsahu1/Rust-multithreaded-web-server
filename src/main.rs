@@ -10,6 +10,7 @@ fn main() {
     //bind returns Result<TcpListener, io::Error> so i need to unwrap it, if another program is already listening on 7878, binding fails.
     let listener = TcpListener::bind("127.0.0.1:7878").unwrap(); 
     println!("Listening on http://127.0.0.1:7878");
+    let pool = ThreadPool::new(4); //here i am creating a thread pool with 4 threads
 
     //here incoming gives an iterator of upcoming connection attempts, each item is essentially trying to connect to the server and each time returns a Result<TcpStream, io::Error>
     //so i need to unwrap each item
@@ -18,7 +19,10 @@ fn main() {
         let stream = stream.unwrap(); //RETURNS TcpStream which i can use to send data to the client
 
         println!("connection established");
-        handle_connection(stream);
+
+        pool.execute(|| {
+            handle_connection(stream);
+        });
     }
 
 }
