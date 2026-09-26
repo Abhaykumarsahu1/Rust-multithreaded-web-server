@@ -5,6 +5,9 @@ use std::{
     thread,
     time::Duration,
 };
+
+use hello::ThreadPool;
+
 fn main() {
     //below what's happening is that i want my program to listen for tcp connection comming from port no. 7878 on this machine
     //bind returns Result<TcpListener, io::Error> so i need to unwrap it, if another program is already listening on 7878, binding fails.
