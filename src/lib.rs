@@ -1,14 +1,50 @@
-pub struct ThreadPool;
+use std::{
+    sync::{Arc, Mutex, mpsc},
+    thread,
+};
 
+pub struct ThreadPool{
+    // threads : Vec<thread::JoinHandle<()>>, we created this but we dont want our raw threads to execute instantly, we want them to be in a queue and then executed by the threadpool 
+    workers: Vec<Worker>, //here eache worker has metadata like id, thread and a queue of tasks
+    sender: mpsc::Sender<Task>,
+}
+
+struct Job;
 impl ThreadPool {
+    ///Create a new ThreadPool
+    /// The size is the number of threads in Pool
+    /// # Panics
+    /// The `new` function will panic if the size is zero.
     pub fn new(size: usize)->ThreadPool{
-        ThreadPool
+        assert!(size>0);
+
+        let (sender, reciever) = mpsc::channel();
+
+        let mut workers = Vec::with_capacity(size); //we used this instead of Vec::new() because we want to preallocate the memory of 4.
+
+        for id in 0..size{
+            workers.push(Worker::new(id, reciever)); 
+        }
+        ThreadPool {workers, sender}
     }
 
     pub fn execute<F>(&self, f:F)
     where
         F: FnOnce() + Send + 'static,
     {
-        
+
+    }
+}
+
+struct Worker{
+    id: usize,
+    thread: thread::JoinHanlde<()>,
+}
+
+impl Worker{
+    fn new (id: usize)->Worker{
+        let thread = thread::spawn(|| {});
+
+        Worker{id,thread}
     }
 }
