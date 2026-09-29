@@ -3,13 +3,14 @@ use std::{
     thread,
 };
 
-pub struct ThreadPool{
+pub struct ThreadPool{ //thread pools own the sending side of the channel
     // threads : Vec<thread::JoinHandle<()>>, we created this but we dont want our raw threads to execute instantly, we want them to be in a queue and then executed by the threadpool 
     workers: Vec<Worker>, //here eache worker has metadata like id, thread and a queue of tasks
-    sender: mpsc::Sender<Task>,
+    sender: mpsc::Sender<Job>,
 }
 
-struct Job;
+type Job = Box<dyn FnOnce() + Send + 'static>;
+
 impl ThreadPool {
     ///Create a new ThreadPool
     /// The size is the number of threads in Pool
@@ -20,10 +21,12 @@ impl ThreadPool {
 
         let (sender, reciever) = mpsc::channel();
 
+        let reciever = Arc::new(Mutex::new(reciever));
+
         let mut workers = Vec::with_capacity(size); //we used this instead of Vec::new() because we want to preallocate the memory of 4.
 
         for id in 0..size{
-            workers.push(Worker::new(id, reciever)); 
+            workers.push(Worker::new(id, Arc::clone(&reciever))); 
         }
         ThreadPool {workers, sender}
     }
@@ -32,18 +35,29 @@ impl ThreadPool {
     where
         F: FnOnce() + Send + 'static,
     {
-
+        let job = Box::new(f);
+        self.sender.send(job).unwrap();
     }
 }
 
 struct Worker{
     id: usize,
-    thread: thread::JoinHanlde<()>,
+    thread: thread::JoinHandle<()>,
 }
 
+//by getting id and shared reciever it will create a worken 
 impl Worker{
-    fn new (id: usize)->Worker{
-        let thread = thread::spawn(|| {});
+    fn new (id: usize, reciever: Arc<Mutex<mpsc::Receiver<Job>>>)->Worker{
+        let thread = thread::spawn( move || {
+            loop {
+                let job = reciever.lock().unwrap().recv().unwrap();
+                println!("Worker {id} got a job; executing.");
+
+                job();
+
+                println!("Worker {id} finished the job.");
+            }
+        });
 
         Worker{id,thread}
     }

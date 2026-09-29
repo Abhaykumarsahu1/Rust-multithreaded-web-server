@@ -6,7 +6,8 @@ use std::{
     time::Duration,
 };
 
-use hello::ThreadPool;
+use web_server::ThreadPool;
+
 
 fn main() {
     //below what's happening is that i want my program to listen for tcp connection comming from port no. 7878 on this machine
@@ -24,7 +25,7 @@ fn main() {
         println!("connection established");
 
         pool.execute(|| {
-            handle_connection(stream);
+            handle_connection(stream); //main thread is basically putting the job here in channel and then the threadpool will execute it
         });
     }
 
@@ -44,7 +45,7 @@ fn handle_connection(mut stream: TcpStream){
     let (status_line, filename) = match &request_line[..]{
         "GET / HTTP/1.1" => ("HTTP/1.1 200 OK", "hello.html"),
         "GET /sleep HTTP/1.1" => {
-            thread::sleep(Duration::from_secs(5));
+            thread::sleep(Duration::from_secs(10));
             ("HTTP/1.1 200 OK", "hello.html")
         }
         _ => ("HTTP/1.1 404 Not Found", "404.html"),
