@@ -18,7 +18,7 @@ fn main() {
 
     //here incoming gives an iterator of upcoming connection attempts, each item is essentially trying to connect to the server and each time returns a Result<TcpStream, io::Error>
     //so i need to unwrap each item
-    for stream in listener.incoming(){
+    for stream in listener.incoming().take(2){
 
         let stream = stream.unwrap(); //RETURNS TcpStream which i can use to send data to the client
 
